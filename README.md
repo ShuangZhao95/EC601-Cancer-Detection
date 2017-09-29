@@ -1,1 +1,1 @@
-# EC605-Cancer-Detection
+# EC601-Cancer-Detection
