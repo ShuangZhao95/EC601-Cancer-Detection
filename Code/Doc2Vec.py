@@ -7,31 +7,59 @@
 
 
 from __future__ import print_function
+print("begin imports")
+print("numpy")
 import numpy as np
+print("os")
 import os
+print("re")
 import re
+print("tqdm")
 import tqdm
+print("string")
 import string
+print("pandas")
 import pandas as pd
+print("keras")
 import keras
+print("keras backend")
 from keras import backend as K
+print("keras np_utilz")
 from keras.utils import np_utils
+print("keras Sequential")
 from keras.models import Sequential
+print("keras layers")
 from keras.layers import Dense, Dropout, LSTM, Embedding, Input, RepeatVector
+print("keras SGD")
 from keras.optimizers import SGD
+print("tables")
 import tables
+print("sklearn shuffle")
 from sklearn.utils import shuffle
-from sklearn.manifold import TSNE
+print("sklearn TruncatedSVD")
 from sklearn.decomposition import TruncatedSVD
+print("sklearn LabelEncoder")
 from sklearn.preprocessing import LabelEncoder
+print("gensim Doc2Vec")
 from gensim.models import Doc2Vec
+print("gensim LabeledSentence")
 from gensim.models.doc2vec import LabeledSentence
+print("gensim utils")
 from gensim import utils
+print("nltk stopwords")
 from nltk.corpus import stopwords
+print("matplotlib")
 import matplotlib
+print("matplotlib set backend")
+matplotlib.use('TkAgg')
+print("matplotlib pyplot")
 import matplotlib.pyplot as plt
+print("seaborn")
 import seaborn as sns
+print("done with imports")
 
+
+#Takes ~50 seconds on cluster to get here
 
 # ## 1. Loading Data
 
@@ -133,7 +161,7 @@ print("Begin Doc2Vec Model")
 Text_INPUT_DIM=300
 
 if not setup_avail:
-    text_model = Doc2Vec(min_count=1, window=5, size=Text_INPUT_DIM, sample=1e-4, negative=5, workers=4, iter=5,seed=1)
+    text_model = Doc2Vec(min_count=1, window=5, size=Text_INPUT_DIM, sample=1e-4, negative=5, workers=7, iter=10,seed=1)
     text_model.build_vocab(sentences)
     text_model.train(sentences, total_examples=text_model.corpus_count, epochs=text_model.iter)
     text_model.save(filename)
@@ -163,19 +191,19 @@ print(text_train_arrays[0][:50])
 
 # In[8]:
 
-print("begin coding labels")
+#print("begin coding labels")
 
-Gene_INPUT_DIM=25
+Gene_INPUT_DIM=0#25
 
-svd = TruncatedSVD(n_components=25, n_iter=Gene_INPUT_DIM, random_state=12)
+#svd = TruncatedSVD(n_components=25, n_iter=Gene_INPUT_DIM, random_state=12)
 
-one_hot_gene = pd.get_dummies(all_data['Gene'])
-truncated_one_hot_gene = svd.fit_transform(one_hot_gene.values)
+#one_hot_gene = pd.get_dummies(all_data['Gene'])
+#truncated_one_hot_gene = svd.fit_transform(one_hot_gene.values)
 
-one_hot_variation = pd.get_dummies(all_data['Variation'])
-truncated_one_hot_variation = svd.fit_transform(one_hot_variation.values)
+#one_hot_variation = pd.get_dummies(all_data['Variation'])
+#truncated_one_hot_variation = svd.fit_transform(one_hot_variation.values)
 
-print("end coding labels")
+#print("end coding labels")
 
 # ### 3.3 Output class encoding
 
@@ -192,15 +220,16 @@ print(encoded_y[0])
 # In[10]:
 
 
-train_set=np.hstack((truncated_one_hot_gene[:train_size],truncated_one_hot_variation[:train_size],text_train_arrays))
-test_set=np.hstack((truncated_one_hot_gene[train_size:],truncated_one_hot_variation[train_size:],text_test_arrays))
+train_set = text_train_arrays#np.hstack((truncated_one_hot_gene[:train_size],truncated_one_hot_variation[:train_size],text_train_arrays))
+test_set = text_test_arrays#np.hstack((truncated_one_hot_gene[train_size:],truncated_one_hot_variation[train_size:],text_test_arrays))
 print(train_set[0][:50])
+
+
 
 
 # ## 4. Define Keras Model
 
 # In[11]:
-
 
 def baseline_model():
     model = Sequential()
@@ -218,10 +247,12 @@ def baseline_model():
 
 # In[12]:
 
+print("define keras model")
 
 model = baseline_model()
 model.summary()
 
+print("done")
 
 # ## 5. Training and Evaluating the Model
 
@@ -229,8 +260,13 @@ model.summary()
 
 # In[13]:
 
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(train_set, encoded_y, test_size=0.2, random_state=42)
 
-estimator=model.fit(train_set, encoded_y, validation_split=0.2, epochs=100, batch_size=64)
+
+
+
+estimator=model.fit(x_train, y_train, validation_data = (x_test, y_test), epochs=20, batch_size=64)
 
 
 # Final model accuracy
@@ -240,6 +276,14 @@ estimator=model.fit(train_set, encoded_y, validation_split=0.2, epochs=100, batc
 
 print("Training accuracy: %.2f%% / Validation accuracy: %.2f%%" % (100*estimator.history['acc'][-1], 100*estimator.history['val_acc'][-1]))
 
+import scikitplot.plotters as skplt
+probas = model.predict_proba(x_test)
+pred_indices = np.argmax(probas, axis=1)
+classes = np.array(range(1,10))
+preds = classes[pred_indices]
+skplt.plot_confusion_matrix(classes[np.argmax(y_test,axis=1)],preds)
+plt.show()
+
 
 # In[15]:
 
@@ -248,15 +292,6 @@ plt.plot(estimator.history['acc'])
 plt.plot(estimator.history['val_acc'])
 plt.title('model accuracy')
 plt.ylabel('accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'valid'], loc='upper left')
-plt.show()
-
-# summarize history for loss
-plt.plot(estimator.history['loss'])
-plt.plot(estimator.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'valid'], loc='upper left')
 plt.show()
@@ -281,39 +316,5 @@ submission.columns = ['class1', 'class2', 'class3', 'class4', 'class5', 'class6'
 submission.to_csv("submission_all.csv",index=False)
 submission.head()
 
-
-# ## 7. Layers Visualization
-
-# In[18]:
-
-print("Layers Visualization")
-
-layer_of_interest=0
-intermediate_tensor_function = K.function([model.layers[0].input],[model.layers[layer_of_interest].output])
-intermediate_tensor = intermediate_tensor_function([train_set[0,:].reshape(1,-1)])[0]
-
-
-# In[19]:
-
-print("got here")
-
-colors = list(matplotlib.colors.cnames)
-
-intermediates = []
-color_intermediates = []
-for i in range(len(train_set)):
-    output_class = np.argmax(encoded_y[i,:])
-    intermediate_tensor = intermediate_tensor_function([train_set[i,:].reshape(1,-1)])[0]
-    intermediates.append(intermediate_tensor[0])
-    color_intermediates.append(colors[output_class])
-
-print("then got here")
-# In[20]:
-
-tsne = TSNE(n_components=2, random_state=0)
-intermediates_tsne = tsne.fit_transform(intermediates)
-plt.figure(figsize=(8, 8))
-plt.scatter(x = intermediates_tsne[:,0], y=intermediates_tsne[:,1], color=color_intermediates)
-plt.show()
 
 print("reached end")
