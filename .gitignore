@@ -1,0 +1,9 @@
+*.txt
+*.csv
+*.d2v
+*.D2V
+*.h5
+*.npy
+input/
+data/
+

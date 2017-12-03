@@ -9,31 +9,59 @@
 
 
 from __future__ import print_function
+print("begin imports")
+print("numpy")
 import numpy as np
+print("os")
 import os
+print("re")
 import re
+print("tqdm")
 import tqdm
+print("string")
 import string
+print("pandas")
 import pandas as pd
+print("keras")
 import keras
+print("keras backend")
 from keras import backend as K
+print("keras np_utilz")
 from keras.utils import np_utils
+print("keras Sequential")
 from keras.models import Sequential
+print("keras layers")
 from keras.layers import Dense, Dropout, LSTM, Embedding, Input, RepeatVector
+print("keras SGD")
 from keras.optimizers import SGD
+print("tables")
 import tables
+print("sklearn shuffle")
 from sklearn.utils import shuffle
-from sklearn.manifold import TSNE
+print("sklearn TruncatedSVD")
 from sklearn.decomposition import TruncatedSVD
+print("sklearn LabelEncoder")
 from sklearn.preprocessing import LabelEncoder
+print("gensim Doc2Vec")
 from gensim.models import Doc2Vec
+print("gensim LabeledSentence")
 from gensim.models.doc2vec import LabeledSentence
+print("gensim utils")
 from gensim import utils
+print("nltk stopwords")
 from nltk.corpus import stopwords
+print("matplotlib")
 import matplotlib
+print("matplotlib set backend")
+matplotlib.use('TkAgg')
+print("matplotlib pyplot")
 import matplotlib.pyplot as plt
+print("seaborn")
 import seaborn as sns
+print("done with imports")
 
+
+#Takes ~50 seconds on cluster to get here
 
 # ## 1. Loading Data
 
@@ -135,7 +163,7 @@ print("Begin Doc2Vec Model")
 Text_INPUT_DIM=300
 
 if not setup_avail:
-    text_model = Doc2Vec(min_count=1, window=5, size=Text_INPUT_DIM, sample=1e-4, negative=5, workers=4, iter=5,seed=1)
+    text_model = Doc2Vec(min_count=1, window=5, size=Text_INPUT_DIM, sample=1e-4, negative=5, workers=7, iter=10,seed=1)
     text_model.build_vocab(sentences)
     text_model.train(sentences, total_examples=text_model.corpus_count, epochs=text_model.iter)
     text_model.save(filename)
@@ -165,19 +193,19 @@ print(text_train_arrays[0][:50])
 
 # In[8]:
 
-print("begin coding labels")
+#print("begin coding labels")
 
-Gene_INPUT_DIM=25
+Gene_INPUT_DIM=0#25
 
-svd = TruncatedSVD(n_components=25, n_iter=Gene_INPUT_DIM, random_state=12)
+#svd = TruncatedSVD(n_components=25, n_iter=Gene_INPUT_DIM, random_state=12)
 
-one_hot_gene = pd.get_dummies(all_data['Gene'])
-truncated_one_hot_gene = svd.fit_transform(one_hot_gene.values)
+#one_hot_gene = pd.get_dummies(all_data['Gene'])
+#truncated_one_hot_gene = svd.fit_transform(one_hot_gene.values)
 
-one_hot_variation = pd.get_dummies(all_data['Variation'])
-truncated_one_hot_variation = svd.fit_transform(one_hot_variation.values)
+#one_hot_variation = pd.get_dummies(all_data['Variation'])
+#truncated_one_hot_variation = svd.fit_transform(one_hot_variation.values)
 
-print("end coding labels")
+#print("end coding labels")
 
 # ### 3.3 Output class encoding
 
@@ -194,15 +222,14 @@ print(encoded_y[0])
 # In[10]:
 
 
-train_set=np.hstack((truncated_one_hot_gene[:train_size],truncated_one_hot_variation[:train_size],text_train_arrays))
-test_set=np.hstack((truncated_one_hot_gene[train_size:],truncated_one_hot_variation[train_size:],text_test_arrays))
+train_set = text_train_arrays#np.hstack((truncated_one_hot_gene[:train_size],truncated_one_hot_variation[:train_size],text_train_arrays))
+test_set = text_test_arrays#np.hstack((truncated_one_hot_gene[train_size:],truncated_one_hot_variation[train_size:],text_test_arrays))
 print(train_set[0][:50])
 
 
 # ## 4. Define Keras Model
 
 # In[11]:
-
 
 def baseline_model():
     model = Sequential()
@@ -220,10 +247,12 @@ def baseline_model():
 
 # In[12]:
 
+print("define keras model")
 
 model = baseline_model()
 model.summary()
 
+print("done")
 
 # ## 5. Training and Evaluating the Model
 
@@ -308,14 +337,5 @@ for i in range(len(train_set)):
     intermediate_tensor = intermediate_tensor_function([train_set[i,:].reshape(1,-1)])[0]
     intermediates.append(intermediate_tensor[0])
     color_intermediates.append(colors[output_class])
-
-print("then got here")
-# In[20]:
-
-tsne = TSNE(n_components=2, random_state=0)
-intermediates_tsne = tsne.fit_transform(intermediates)
-plt.figure(figsize=(8, 8))
-plt.scatter(x = intermediates_tsne[:,0], y=intermediates_tsne[:,1], color=color_intermediates)
-plt.show()
 
 print("reached end")
