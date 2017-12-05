@@ -44,7 +44,7 @@ def baseline_model():
 model = baseline_model()
 
 
-estimator=model.fit(train_set, encoded_y, validation_split=0.2, epochs=2, batch_size=64)
+estimator=model.fit(train_set, encoded_y, validation_split=0.2, epochs=20, batch_size=64)
 
 
 app = Flask(__name__)
@@ -132,4 +132,4 @@ def calculate(filename):
     return o
 	
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', debug = False)
