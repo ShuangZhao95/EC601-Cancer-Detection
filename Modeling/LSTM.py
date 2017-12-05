@@ -189,28 +189,6 @@ for i in range(train_size,train_size+test_size):
 print(text_train_arrays[0][:50])
 
 
-# ### 3.2 Gene and Varation Featurizer
-
-# In[8]:
-
-#print("begin coding labels")
-
-Gene_INPUT_DIM=0#25
-
-#svd = TruncatedSVD(n_components=25, n_iter=Gene_INPUT_DIM, random_state=12)
-
-#one_hot_gene = pd.get_dummies(all_data['Gene'])
-#truncated_one_hot_gene = svd.fit_transform(one_hot_gene.values)
-
-#one_hot_variation = pd.get_dummies(all_data['Variation'])
-#truncated_one_hot_variation = svd.fit_transform(one_hot_variation.values)
-
-#print("end coding labels")
-
-# ### 3.3 Output class encoding
-
-# In[9]:
-
 label_encoder = LabelEncoder()
 label_encoder.fit(train_y)
 encoded_y = np_utils.to_categorical((label_encoder.transform(train_y)))
@@ -233,7 +211,7 @@ print(train_set[0][:50])
 
 def baseline_model():
     model = Sequential()
-    model.add(Dense(256, input_dim=Text_INPUT_DIM+Gene_INPUT_DIM*2, activation='relu', kernel_initializer='normal'))
+    model.add(Dense(256, input_dim=Text_INPUT_DIM, activation='relu', kernel_initializer='normal'))
     model.add(Dropout(0.3))
     model.add(Dense(256, activation='relu', kernel_initializer='normal'))
     model.add(Dropout(0.5))
@@ -295,16 +273,11 @@ plt.show()
 
 # ## 6. Make Predictions
 
-# In[16]:
-
 
 y_pred = model.predict_proba(test_set)
 
 
 # Make Submission File
-
-# In[17]:
-
 
 submission = pd.DataFrame(y_pred)
 submission['id'] = test_index

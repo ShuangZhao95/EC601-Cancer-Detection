@@ -233,7 +233,7 @@ print(train_set[0][:50])
 
 def baseline_model():
     model = Sequential()
-    model.add(Dense(256, input_dim=Text_INPUT_DIM+Gene_INPUT_DIM*2, activation='relu', kernel_initializer='normal'))
+    model.add(Dense(256, input_dim=Text_INPUT_DIM, activation='relu', kernel_initializer='normal'))
     model.add(Dropout(0.3))
     model.add(Dense(256, activation='relu', kernel_initializer='normal'))
     model.add(Dropout(0.5))
