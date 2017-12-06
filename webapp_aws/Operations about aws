@@ -1,0 +1,6 @@
+ssh -i ~/cancer-detection.pem ubuntu@18.220.218.162
+
+ps aux | grep -i $your_process_name
+kill -9 $pid
+
+nohup python webap_aws.py &
