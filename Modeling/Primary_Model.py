@@ -1,12 +1,5 @@
-
 # coding: utf-8
 
-# # Predict the effect of Genetic Variants
-
-# In[1]:
-
-
-from __future__ import print_function
 print("begin imports")
 print("numpy")
 import numpy as np
@@ -40,6 +33,8 @@ print("sklearn TruncatedSVD")
 from sklearn.decomposition import TruncatedSVD
 print("sklearn LabelEncoder")
 from sklearn.preprocessing import LabelEncoder
+print("sklearn train_test_split")
+from sklearn.model_selection import train_test_split
 print("gensim Doc2Vec")
 from gensim.models import Doc2Vec
 print("gensim LabeledSentence")
@@ -59,11 +54,6 @@ import seaborn as sns
 print("done with imports")
 
 
-#Takes ~50 seconds on cluster to get here
-
-# ## 1. Loading Data
-
-# In[2]:
 
 """ Load in setup files, throw a flag if they don't exist """
 
@@ -100,31 +90,15 @@ print("done loading setup files")
 
 test_variant = pd.read_csv("../input/test_variants")
 test_text = pd.read_csv("../input/test_text", sep="\|\|", engine='python', header=None, skiprows=1, names=["ID","Text"])
-
 train_y = train['Class'].values
 train_x = train.drop('Class', axis=1)
 train_size=len(train_x)
-print('Number of training variants: %d' % (train_size))
-# number of train data : 3321
-
 test_x = pd.merge(test_variant, test_text, how='left', on='ID')
 test_size=len(test_x)
-print('Number of test variants: %d' % (test_size))
-# number of test data : 5668
-
 test_index = test_x['ID'].values
 all_data = np.concatenate((train_x, test_x), axis=0)
 all_data = pd.DataFrame(all_data)
 all_data.columns = ["ID", "Gene", "Variation", "Text"]
-
-
-# In[4]:
-all_data.head()
-
-
-# ## 2. Data Preprocessing
-
-# In[ ]:
 
 def constructLabeledSentences(data):
     sentences=[]
@@ -147,16 +121,9 @@ def cleanup(text):
 
 allText = all_data['Text'].apply(cleanup)
 sentences = constructLabeledSentences(allText)
-allText.head()
 
 
-# ## 3. Data Preparation and Features Extraction
-
-# ### 3.1 Text Featurizer using Doc2Vec
-
-# In[6]:
-
-print("Begin Doc2Vec Model")
+print("begin Doc2Vec Model")
 
 Text_INPUT_DIM=300
 
@@ -165,13 +132,6 @@ if not setup_avail:
     text_model.build_vocab(sentences)
     text_model.train(sentences, total_examples=text_model.corpus_count, epochs=text_model.iter)
     text_model.save(filename)
-
-print("End Doc2Vec Model")
-
-# Featurize text for your training and testing dataset 
-
-# In[7]:
-
 
 text_train_arrays = np.zeros((train_size, Text_INPUT_DIM))
 text_test_arrays = np.zeros((test_size, Text_INPUT_DIM))
@@ -183,53 +143,17 @@ j=0
 for i in range(train_size,train_size+test_size):
     text_test_arrays[j] = text_model.docvecs['Text_'+str(i)]
     j=j+1
-    
-print(text_train_arrays[0][:50])
 
 
-# ### 3.2 Gene and Varation Featurizer
+print("end Doc2Vec Model")
 
-# In[8]:
-
-#print("begin coding labels")
-
-Gene_INPUT_DIM=0#25
-
-#svd = TruncatedSVD(n_components=25, n_iter=Gene_INPUT_DIM, random_state=12)
-
-#one_hot_gene = pd.get_dummies(all_data['Gene'])
-#truncated_one_hot_gene = svd.fit_transform(one_hot_gene.values)
-
-#one_hot_variation = pd.get_dummies(all_data['Variation'])
-#truncated_one_hot_variation = svd.fit_transform(one_hot_variation.values)
-
-#print("end coding labels")
-
-# ### 3.3 Output class encoding
-
-# In[9]:
 
 label_encoder = LabelEncoder()
 label_encoder.fit(train_y)
 encoded_y = np_utils.to_categorical((label_encoder.transform(train_y)))
-print(encoded_y[0])
 
-
-# ### 3.4 Merge Input features
-
-# In[10]:
-
-
-train_set = text_train_arrays#np.hstack((truncated_one_hot_gene[:train_size],truncated_one_hot_variation[:train_size],text_train_arrays))
-test_set = text_test_arrays#np.hstack((truncated_one_hot_gene[train_size:],truncated_one_hot_variation[train_size:],text_test_arrays))
-print(train_set[0][:50])
-
-
-
-
-# ## 4. Define Keras Model
-
-# In[11]:
+train_set = text_train_arrays
+test_set = text_test_arrays
 
 def baseline_model():
     model = Sequential()
@@ -244,39 +168,19 @@ def baseline_model():
     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
     return model
 
-
-# In[12]:
-
-print("define keras model")
-
 model = baseline_model()
 model.summary()
 
-print("done")
-
-# ## 5. Training and Evaluating the Model
-
-# Create estimator for training the model
-
-# In[13]:
-
-from sklearn.model_selection import train_test_split
 x_train, x_test, y_train, y_test = train_test_split(train_set, encoded_y, test_size=0.2, random_state=42)
-
-
-
-
 estimator=model.fit(x_train, y_train, validation_data = (x_test, y_test), epochs=20, batch_size=64)
-
-
-# Final model accuracy
-
-# In[14]:
-
 
 print("Training accuracy: %.2f%% / Validation accuracy: %.2f%%" % (100*estimator.history['acc'][-1], 100*estimator.history['val_acc'][-1]))
 
+
+
 import scikitplot.plotters as skplt
+
+#plot confusion matrix
 probas = model.predict_proba(x_test)
 pred_indices = np.argmax(probas, axis=1)
 classes = np.array(range(1,10))
@@ -284,10 +188,7 @@ preds = classes[pred_indices]
 skplt.plot_confusion_matrix(classes[np.argmax(y_test,axis=1)],preds)
 plt.show()
 
-
-# In[15]:
-
-# summarize history for accuracy
+#plot loss over epochs
 plt.plot(estimator.history['acc'])
 plt.plot(estimator.history['val_acc'])
 plt.title('model accuracy')
@@ -297,24 +198,13 @@ plt.legend(['train', 'valid'], loc='upper left')
 plt.show()
 
 
-# ## 6. Make Predictions
-
-# In[16]:
-
-
-y_pred = model.predict_proba(test_set)
-
-
 # Make Submission File
-
-# In[17]:
-
+y_pred = model.predict_proba(test_set)
 
 submission = pd.DataFrame(y_pred)
 submission['id'] = test_index
 submission.columns = ['class1', 'class2', 'class3', 'class4', 'class5', 'class6', 'class7', 'class8', 'class9', 'id']
 submission.to_csv("submission_all.csv",index=False)
 submission.head()
-
 
 print("reached end")
