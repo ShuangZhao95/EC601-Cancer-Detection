@@ -13,3 +13,7 @@ Basically this project is to process a text file written in English, and extract
 The mian web page can be accessed in Webpage-final-version folder, and the code for upload file web is in webapp_aws folder.
 
 The algorithm can be accessed in Modeling folder.
+
+We have ran an automated test on Monkey Test, the test results can be found on https://monkeytest.it/test/379f676f-45ce-49fd-8c11-fb14c375b645 
+
+![result](https://user-images.githubusercontent.com/31711562/33798887-cbfd4596-dcee-11e7-95f3-c2b53fc9d791.png)
